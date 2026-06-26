@@ -14,6 +14,7 @@ import {
   getCategoryById,
   getUser,
   ensureUser,
+  formatMoney,
 } from "../store.js";
 import type { InlineButton } from "../toolkit/index.js";
 
@@ -22,11 +23,6 @@ registerMainMenuItem({ label: "📋 Recent", data: "recent:list:0", order: 30 })
 const PER_PAGE = 5;
 
 const composer = new Composer<Ctx>();
-
-function formatMoney(cents: number, currency: string): string {
-  const sym = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : currency + " ";
-  return `${sym}${(cents / 100).toFixed(2)}`;
-}
 
 async function renderRecentList(ctx: Ctx, page: number) {
   const userId = ctx.from!.id;

@@ -15,6 +15,7 @@ import {
   getBudget,
   getNotificationRules,
   ensureUser,
+  formatMoney,
 } from "../store.js";
 
 registerMainMenuItem({ label: "💵 Log Expense", data: "quick:log", order: 10 });
@@ -28,9 +29,16 @@ function amountInCents(text: string): number | null {
   return Math.round(num * 100);
 }
 
-function formatMoney(cents: number, currency: string): string {
-  const sym = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : currency + " ";
-  return `${sym}${(cents / 100).toFixed(2)}`;
+function getUserMonthBounds(timezone: string): { start: string } {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+  });
+  const [year, month] = fmt.format(now).split("-").map(Number);
+  const start = new Date(Date.UTC(year, month - 1, 1)).toISOString();
+  return { start };
 }
 
 async function checkBudgetWarnings(ctx: Ctx, userId: number, addedAmountCents: number, addedCategoryId: string) {
@@ -40,8 +48,7 @@ async function checkBudgetWarnings(ctx: Ctx, userId: number, addedAmountCents: n
   const user = await getUser(userId);
   if (!user) return;
 
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const { start: monthStart } = getUserMonthBounds(user.timezone ?? "UTC");
   const monthExpenses = expenses.filter((e) => e.timestamp >= monthStart);
   const monthTotal = monthExpenses.reduce((sum, e) => sum + e.amount_cents, 0);
 
@@ -187,7 +194,7 @@ composer.command("add", async (ctx) => {
   let cat = cats.find((c) => c.name.toLowerCase() === categoryName.toLowerCase());
   if (!cat) {
     cat = {
-      id: generateId(),
+      id: await generateId(),
       user_id: userId,
       name: categoryName,
       created_at: new Date().toISOString(),
@@ -197,7 +204,7 @@ composer.command("add", async (ctx) => {
   }
 
   const expense = {
-    id: generateId(),
+    id: await generateId(),
     user_id: userId,
     timestamp: new Date().toISOString(),
     amount_cents: cents,
@@ -252,7 +259,7 @@ composer.callbackQuery(/^quick:add_amount:(.+)$/, async (ctx) => {
   }
 
   const expense = {
-    id: generateId(),
+    id: await generateId(),
     user_id: userId,
     timestamp: new Date().toISOString(),
     amount_cents: cents,
@@ -323,7 +330,7 @@ composer.on("message:text", async (ctx, next) => {
       }
 
       const expense = {
-        id: generateId(),
+        id: await generateId(),
         user_id: userId,
         timestamp: new Date().toISOString(),
         amount_cents: cents,
@@ -400,7 +407,7 @@ composer.on("message:text", async (ctx, next) => {
 
     if (cat) {
       const expense = {
-        id: generateId(),
+        id: await generateId(),
         user_id: ctx.from!.id,
         timestamp: new Date().toISOString(),
         amount_cents: cents,
@@ -430,7 +437,7 @@ composer.on("message:text", async (ctx, next) => {
     }
 
     cat = {
-      id: generateId(),
+      id: await generateId(),
       user_id: ctx.from!.id,
       name: name,
       created_at: new Date().toISOString(),
@@ -438,7 +445,7 @@ composer.on("message:text", async (ctx, next) => {
     };
     await addCategory(ctx.from!.id, cat);
     const expense = {
-      id: generateId(),
+      id: await generateId(),
       user_id: ctx.from!.id,
       timestamp: new Date().toISOString(),
       amount_cents: cents,

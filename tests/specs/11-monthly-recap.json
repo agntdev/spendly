@@ -1,0 +1,15 @@
+[
+  {
+    "name": "monthly recap trigger shows recap",
+    "steps": [
+      {
+        "send": { "callback": "recap:trigger" },
+        "expect": [
+          {
+            "method": "editMessageText"
+          }
+        ]
+      }
+    ]
+  }
+]
