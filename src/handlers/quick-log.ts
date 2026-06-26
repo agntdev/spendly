@@ -191,7 +191,21 @@ composer.command("add", async (ctx) => {
   }
 
   const cats = await getCategories(userId);
-  let cat = cats.find((c) => c.name.toLowerCase() === categoryName.toLowerCase());
+  const words = categoryName.split(/\s+/);
+  let cat: typeof cats[0] | null = null;
+  let note: string | undefined;
+
+  for (let i = words.length; i >= 1; i--) {
+    const candidate = words.slice(0, i).join(" ");
+    const match = cats.find((c) => c.name.toLowerCase() === candidate.toLowerCase());
+    if (match) {
+      cat = match;
+      const rest = words.slice(i).join(" ").trim();
+      note = rest.length > 0 ? rest : undefined;
+      break;
+    }
+  }
+
   if (!cat) {
     cat = {
       id: await generateId(),
@@ -209,6 +223,7 @@ composer.command("add", async (ctx) => {
     timestamp: new Date().toISOString(),
     amount_cents: cents,
     category_id: cat.id,
+    note,
   };
   await addExpense(userId, expense);
   await incrementCategoryUsage(userId, cat.id);
@@ -258,12 +273,16 @@ composer.callbackQuery(/^quick:add_amount:(.+)$/, async (ctx) => {
     return;
   }
 
+  const note = ctx.session.pendingNote;
+  ctx.session.pendingNote = undefined;
+
   const expense = {
     id: await generateId(),
     user_id: userId,
     timestamp: new Date().toISOString(),
     amount_cents: cents,
     category_id: cat.id,
+    note,
   };
   await addExpense(userId, expense);
   await incrementCategoryUsage(userId, cat.id);
@@ -317,6 +336,29 @@ composer.on("message:text", async (ctx, next) => {
       return;
     }
 
+    ctx.session.lastExpenseAmount_cents = cents;
+    ctx.session.step = "awaiting_note";
+
+    await ctx.reply("Add a note? (send text or tap Skip)", {
+      reply_markup: inlineKeyboard([[inlineButton("Skip", "quick:skip_note")]]),
+    });
+    return;
+  }
+
+  if (ctx.session.step === "awaiting_note") {
+    const noteText = ctx.message!.text.trim();
+    const note = noteText.length > 0 ? noteText : undefined;
+    ctx.session.pendingNote = note;
+    ctx.session.step = undefined;
+
+    const userId = ctx.from!.id;
+    const cents = ctx.session.lastExpenseAmount_cents;
+    if (!cents) {
+      ctx.session.pendingNote = undefined;
+      await ctx.reply("Session expired. Try /add again.");
+      return;
+    }
+
     const categoryId = ctx.session.pendingCategoryId;
     if (categoryId) {
       const cat = await import("../store.js").then((m) => m.getCategoryById(userId, categoryId));
@@ -326,6 +368,7 @@ composer.on("message:text", async (ctx, next) => {
         });
         ctx.session.step = undefined;
         ctx.session.pendingCategoryId = undefined;
+        ctx.session.pendingNote = undefined;
         return;
       }
 
@@ -335,13 +378,13 @@ composer.on("message:text", async (ctx, next) => {
         timestamp: new Date().toISOString(),
         amount_cents: cents,
         category_id: cat.id,
+        note: ctx.session.pendingNote,
       };
       await addExpense(userId, expense);
       await incrementCategoryUsage(userId, cat.id);
       ctx.session.lastExpenseId = expense.id;
-      ctx.session.lastExpenseAmount_cents = cents;
-      ctx.session.step = undefined;
       ctx.session.pendingCategoryId = undefined;
+      ctx.session.pendingNote = undefined;
 
       const user = await getUser(userId);
       const sym = user?.currency ?? "USD";
@@ -372,7 +415,6 @@ composer.on("message:text", async (ctx, next) => {
     const cats = await getCategories(userId);
     const sorted = [...cats].sort((a, b) => b.usage_count - a.usage_count);
     const top = sorted.slice(0, QUICK_CATEGORIES_BUTTONS);
-    ctx.session.lastExpenseAmount_cents = cents;
 
     if (top.length === 0) {
       await ctx.reply("No categories yet. Add one first.", {
@@ -381,6 +423,7 @@ composer.on("message:text", async (ctx, next) => {
         ]),
       });
       ctx.session.step = undefined;
+      ctx.session.pendingNote = undefined;
       return;
     }
 
@@ -403,7 +446,9 @@ composer.on("message:text", async (ctx, next) => {
       await ctx.reply("Session expired. Try /add again.");
       return;
     }
+    const note = ctx.session.pendingNote;
     ctx.session.step = undefined;
+    ctx.session.pendingNote = undefined;
 
     if (cat) {
       const expense = {
@@ -412,6 +457,7 @@ composer.on("message:text", async (ctx, next) => {
         timestamp: new Date().toISOString(),
         amount_cents: cents,
         category_id: cat.id,
+        note,
       };
       await addExpense(ctx.from!.id, expense);
       await incrementCategoryUsage(ctx.from!.id, cat.id);
@@ -450,6 +496,7 @@ composer.on("message:text", async (ctx, next) => {
       timestamp: new Date().toISOString(),
       amount_cents: cents,
       category_id: cat.id,
+      note,
     };
     await addExpense(ctx.from!.id, expense);
     ctx.session.lastExpenseId = expense.id;
@@ -474,6 +521,90 @@ composer.on("message:text", async (ctx, next) => {
   }
 
   return next();
+});
+
+composer.callbackQuery("quick:skip_note", async (ctx) => {
+  await ctx.answerCallbackQuery();
+  ctx.session.pendingNote = undefined;
+  ctx.session.step = undefined;
+
+  const userId = ctx.from!.id;
+  const cents = ctx.session.lastExpenseAmount_cents;
+  if (!cents) {
+    await ctx.editMessageText("Session expired. Try /add again.");
+    return;
+  }
+
+  const categoryId = ctx.session.pendingCategoryId;
+  if (categoryId) {
+    const cat = await import("../store.js").then((m) => m.getCategoryById(userId, categoryId));
+    if (!cat) {
+      await ctx.editMessageText("Category not found. Please start again.", {
+        reply_markup: inlineKeyboard([[inlineButton("⬅️ Back to menu", "menu:main")]]),
+      });
+      ctx.session.pendingCategoryId = undefined;
+      return;
+    }
+
+    const expense = {
+      id: await generateId(),
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+      amount_cents: cents,
+      category_id: cat.id,
+    };
+    await addExpense(userId, expense);
+    await incrementCategoryUsage(userId, cat.id);
+    ctx.session.lastExpenseId = expense.id;
+    ctx.session.lastExpenseAmount_cents = cents;
+    ctx.session.pendingCategoryId = undefined;
+
+    const user = await getUser(userId);
+    const sym = user?.currency ?? "USD";
+
+    await ctx.editMessageText(
+      `Expense logged: ${formatMoney(cents, sym)} in ${cat.name}`,
+      {
+        reply_markup: inlineKeyboard([
+          [inlineButton("↩ Undo", `quick:undo:${expense.id}`)],
+        ]),
+      },
+    );
+
+    await checkBudgetWarnings(ctx, userId, cents, cat.id);
+
+    setTimeout(async () => {
+      const exp2 = await import("../store.js").then((m) => m.getExpenseById(userId, expense.id));
+      if (exp2) {
+        try {
+          await ctx.reply("⏰ Undo time expired.", { reply_to_message_id: ctx.msg?.message_id });
+        } catch { /* ignore */ }
+      }
+    }, 30_000);
+
+    return;
+  }
+
+  const cats = await getCategories(userId);
+  const sorted = [...cats].sort((a, b) => b.usage_count - a.usage_count);
+  const top = sorted.slice(0, QUICK_CATEGORIES_BUTTONS);
+
+  if (top.length === 0) {
+    await ctx.editMessageText("No categories yet. Add one first.", {
+      reply_markup: inlineKeyboard([
+        [inlineButton("➕ Add Category", "cat:add_prompt")],
+      ]),
+    });
+    return;
+  }
+
+  const rows = top.map((c) => [inlineButton(`${c.name}`, `quick:add_amount:${c.id}`)]);
+  rows.push([inlineButton("⬅️ Cancel", "menu:main")]);
+  const u = await getUser(userId);
+  const sym = u?.currency ?? "USD";
+  await ctx.editMessageText(`Amount: ${formatMoney(cents, sym)}. Pick a category:`, {
+    reply_markup: inlineKeyboard(rows),
+  });
 });
 
 export default composer;

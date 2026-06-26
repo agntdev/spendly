@@ -1,6 +1,6 @@
 [
   {
-    "name": "log an expense via quick categories button flow",
+    "name": "log an expense via quick categories button flow with note skip",
     "steps": [
       {
         "send": { "callback": "quick:log" },
@@ -16,6 +16,15 @@
         "expect": [
           {
             "method": "sendMessage",
+            "payload": { "text": "Add a note? (send text or tap Skip)" }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "quick:skip_note" },
+        "expect": [
+          {
+            "method": "editMessageText",
             "payload": { "text": "Amount: $12.50. Pick a category:" }
           }
         ]
@@ -35,6 +44,47 @@
           {
             "method": "editMessageText",
             "payload": { "text": "Expense undone." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "log an expense via quick categories button flow with note text",
+    "steps": [
+      {
+        "send": { "callback": "quick:log" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Enter the expense amount:" }
+          }
+        ]
+      },
+      {
+        "send": { "text": "8.75" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Add a note? (send text or tap Skip)" }
+          }
+        ]
+      },
+      {
+        "send": { "text": "coffee with friends" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Amount: $8.75. Pick a category:" }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "quick:add_amount:id1" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Expense logged: $8.75 in Food" }
           }
         ]
       }
@@ -66,6 +116,15 @@
         "expect": [
           {
             "method": "sendMessage",
+            "payload": { "text": "Add a note? (send text or tap Skip)" }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "quick:skip_note" },
+        "expect": [
+          {
+            "method": "editMessageText",
             "payload": { "text": "Expense logged: $25.00 in Housing" }
           }
         ]
