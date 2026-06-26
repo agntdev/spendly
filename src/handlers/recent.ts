@@ -80,11 +80,21 @@ composer.callbackQuery(/^recent:list:(\d+)$/, async (ctx) => {
   await renderRecentList(ctx, page);
 });
 
+composer.callbackQuery(/^recent:list:prev:(\d+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const page = parseInt(ctx.match[1], 10);
+  await renderRecentList(ctx, page);
+});
+
+composer.callbackQuery(/^recent:list:next:(\d+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const page = parseInt(ctx.match[1], 10);
+  await renderRecentList(ctx, page);
+});
+
 composer.command("recent", async (ctx) => {
   ctx.session.step = undefined;
   await ensureUser(ctx.from!.id);
-  await ctx.reply("Loading recent expenses...");
-  // re-render via callback
   const userId = ctx.from!.id;
   const expenses = await getExpenses(userId);
   const sorted = [...expenses].sort(

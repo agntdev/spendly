@@ -11,6 +11,7 @@ export interface Session {
   pendingExpenseId?: string;
   pendingBudgetType?: string;
   pendingBudgetCategoryId?: string;
+  pendingNote?: string;
   lastExpenseId?: string;
   lastExpenseAmount_cents?: number;
 }

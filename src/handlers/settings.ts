@@ -46,6 +46,13 @@ composer.callbackQuery("settings:currency", async (ctx) => {
       [inlineButton("💵 USD", "settings:set_currency:USD")],
       [inlineButton("💶 EUR", "settings:set_currency:EUR")],
       [inlineButton("💷 GBP", "settings:set_currency:GBP")],
+      [inlineButton("₽ RUB", "settings:set_currency:RUB")],
+      [inlineButton("¥ JPY", "settings:set_currency:JPY")],
+      [inlineButton("₹ INR", "settings:set_currency:INR")],
+      [inlineButton("¥ CNY", "settings:set_currency:CNY")],
+      [inlineButton("R$ BRL", "settings:set_currency:BRL")],
+      [inlineButton("₩ KRW", "settings:set_currency:KRW")],
+      [inlineButton("₴ UAH", "settings:set_currency:UAH")],
       [inlineButton("⬅️ Back", "settings:menu")],
     ]),
   });

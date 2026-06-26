@@ -19,30 +19,40 @@ function getMonthKey(year: number, month: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}`;
 }
 
-function getMonthBounds(now: Date, offset: number): { start: string; end: string; key: string } {
-  const y = now.getFullYear();
-  const m = now.getMonth() - offset;
-  const d = new Date(y, m, 1);
-  const sy = d.getFullYear();
-  const sm = d.getMonth();
-  const start = new Date(sy, sm, 1).toISOString();
-  const end = new Date(sy, sm + 1, 1).toISOString();
-  const key = getMonthKey(sy, sm);
-  return { start, end, key };
+function getMonthBounds(timezone: string, offset: number): { start: string; end: string; key: string; name: string } {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+  });
+  const [year, month] = fmt.format(now).split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1 - offset, 1));
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth();
+  const start = new Date(Date.UTC(y, m, 1)).toISOString();
+  const end = new Date(Date.UTC(y, m + 1, 1)).toISOString();
+  const key = getMonthKey(y, m);
+  const name = new Date(Date.UTC(y, m, 1)).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return { start, end, key, name };
 }
 
 async function buildRecap(userId: number): Promise<string | null> {
   const user = await getUser(userId);
   if (!user) return null;
   const sym = user.currency;
+  const tz = user.timezone ?? "UTC";
   const expenses = await getExpenses(userId);
   const cats = await getCategories(userId);
   const budget = await getBudget(userId);
   const rules = await getNotificationRules(userId);
 
-  const now = new Date();
-  const prev = getMonthBounds(now, 1);
-  const beforePrev = getMonthBounds(now, 2);
+  const prev = getMonthBounds(tz, 1);
+  const beforePrev = getMonthBounds(tz, 2);
 
   const prevExpenses = expenses.filter(
     (e) => e.timestamp >= prev.start && e.timestamp < prev.end,
@@ -54,7 +64,7 @@ async function buildRecap(userId: number): Promise<string | null> {
   const prevTotal = prevExpenses.reduce((sum, e) => sum + e.amount_cents, 0);
   const beforePrevTotal = beforePrevExpenses.reduce((sum, e) => sum + e.amount_cents, 0);
 
-  const monthName = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const monthName = prev.name;
 
   const lines: string[] = [
     `\u{1F4C5} Recap: ${monthName}`,
@@ -120,8 +130,9 @@ async function checkAndSendRecap(bot: Bot<Ctx>, userId: number, force = false): 
     const user = await getUser(userId);
     if (!user) return;
 
-    const now = new Date();
-    const key = getMonthKey(now.getFullYear(), now.getMonth() - 1);
+    const tz = user.timezone ?? "UTC";
+    const bounds = getMonthBounds(tz, 1);
+    const key = bounds.key;
 
     if (!force) {
       const lastKey = await getLastRecapMonth(userId);
