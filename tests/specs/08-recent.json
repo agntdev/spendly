@@ -1,0 +1,29 @@
+[
+  {
+    "name": "list recent expenses",
+    "steps": [
+      {
+        "send": { "text": "/recent" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "confirm delete of an expense",
+    "steps": [
+      {
+        "send": { "callback": "recent:delete_confirm:id10" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Delete this expense?" }
+          }
+        ]
+      }
+    ]
+  }
+]

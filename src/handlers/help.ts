@@ -9,8 +9,19 @@ import { inlineButton, inlineKeyboard } from "../toolkit/index.js";
 const composer = new Composer<Ctx>();
 
 const HELP =
-  "ℹ️ Tap /start to open the menu, then pick what you want from the buttons.\n\n" +
-  "Everything in this bot is reachable by tapping — you don't need to remember any commands.";
+  "ℹ️ Expense Tracker Bot\n\n" +
+  "Track your spending in seconds.\n\n" +
+  "• Tap /start to open the menu\n" +
+  "• Tap 💵 Log Expense to add an expense\n" +
+  "• Use 📊 Summary to see monthly totals vs budgets\n" +
+  "• Set budgets with 🎯 Budget\n" +
+  "• Manage categories with 📂 Categories\n" +
+  "• /add — Quick log (amount + category in one message)\n" +
+  "• /recent — View and edit recent expenses\n" +
+  "• /summary — Monthly summary\n" +
+  "• /setbudget — Set monthly budgets\n" +
+  "• /export — Download your data as CSV\n\n" +
+  "Everything is reachable by tapping — no commands to memorize.";
 
 const backToMenu = inlineKeyboard([[inlineButton("⬅️ Back to menu", "menu:main")]]);
 

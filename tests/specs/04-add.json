@@ -1,0 +1,44 @@
+[
+  {
+    "name": "/add command with amount and category",
+    "steps": [
+      {
+        "send": { "text": "/add 10 Lunch" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Expense logged: $10.00 in Lunch" }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/add with just amount shows category picker",
+    "steps": [
+      {
+        "send": { "text": "/add 5.50" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Pick a category:" }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/add with invalid amount shows error",
+    "steps": [
+      {
+        "send": { "text": "/add 0" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Please enter a valid positive amount, like:\n/add 12.50 Food" }
+          }
+        ]
+      }
+    ]
+  }
+]

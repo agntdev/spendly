@@ -1,0 +1,28 @@
+[
+  {
+    "name": "/summary shows monthly summary",
+    "steps": [
+      {
+        "send": { "text": "/summary" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "summary button shows summary",
+    "steps": [
+      {
+        "send": { "callback": "summary:show" },
+        "expect": [
+          {
+            "method": "editMessageText"
+          }
+        ]
+      }
+    ]
+  }
+]

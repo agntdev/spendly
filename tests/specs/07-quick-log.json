@@ -1,0 +1,75 @@
+[
+  {
+    "name": "log an expense via quick categories button flow",
+    "steps": [
+      {
+        "send": { "callback": "quick:log" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Enter the expense amount:" }
+          }
+        ]
+      },
+      {
+        "send": { "text": "12.50" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Amount: $12.50. Pick a category:" }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "quick:add_amount:id2" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Expense logged: $12.50 in Transport" }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "quick:undo:id12" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Expense undone." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "log expense via button with specific category",
+    "steps": [
+      {
+        "send": { "callback": "quick:categories" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Pick a category:" }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "quick:category:id3" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Enter the amount for Housing:" }
+          }
+        ]
+      },
+      {
+        "send": { "text": "25.00" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Expense logged: $25.00 in Housing" }
+          }
+        ]
+      }
+    ]
+  }
+]

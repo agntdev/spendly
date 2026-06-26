@@ -1,0 +1,27 @@
+[
+  {
+    "name": "/help explains the bot in plain language",
+    "steps": [
+      {
+        "send": { "text": "/help" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "ℹ️ Expense Tracker Bot\n\nTrack your spending in seconds.\n\n\u2022 Tap /start to open the menu\n\u2022 Tap \ud83d\udcb5 Log Expense to add an expense\n\u2022 Use \ud83d\udcca Summary to see monthly totals vs budgets\n\u2022 Set budgets with \ud83c\udfaf Budget\n\u2022 Manage categories with \ud83d\udcc2 Categories\n\u2022 /add \u2014 Quick log (amount + category in one message)\n\u2022 /recent \u2014 View and edit recent expenses\n\u2022 /summary \u2014 Monthly summary\n\u2022 /setbudget \u2014 Set monthly budgets\n\u2022 /export \u2014 Download your data as CSV\n\nEverything is reachable by tapping \u2014 no commands to memorize."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "the Help menu button shows the same help text",
+    "steps": [
+      {
+        "send": { "callback": "menu:help" },
+        "expect": [{ "method": "editMessageText" }]
+      }
+    ]
+  }
+]

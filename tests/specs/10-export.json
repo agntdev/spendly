@@ -1,0 +1,15 @@
+[
+  {
+    "name": "/export shows no expenses when empty",
+    "steps": [
+      {
+        "send": { "text": "/export" },
+        "expect": [
+          {
+            "method": "sendDocument"
+          }
+        ]
+      }
+    ]
+  }
+]
