@@ -1,0 +1,39 @@
+[
+  {
+    "name": "show categories menu",
+    "steps": [
+      {
+        "send": { "callback": "cat:menu" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Your categories:\n(tap name to rename, \ud83d\uddd1 to delete)" }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "add a new category",
+    "steps": [
+      {
+        "send": { "callback": "cat:add_prompt" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Enter the new category name:" }
+          }
+        ]
+      },
+      {
+        "send": { "text": "Coffee" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Category \"Coffee\" added." }
+          }
+        ]
+      }
+    ]
+  }
+]

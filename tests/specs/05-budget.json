@@ -1,0 +1,65 @@
+[
+  {
+    "name": "set overall budget via /setbudget command",
+    "steps": [
+      {
+        "send": { "text": "/setbudget 500" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Overall monthly budget set to $500.00." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/setbudget with no args shows budget menu",
+    "steps": [
+      {
+        "send": { "text": "/setbudget" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "budget menu button shows budget settings",
+    "steps": [
+      {
+        "send": { "callback": "budget:menu" },
+        "expect": [
+          {
+            "method": "editMessageText"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "set overall budget via button flow",
+    "steps": [
+      {
+        "send": { "callback": "budget:set_overall" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Enter your overall monthly budget amount (e.g. 1000):" }
+          }
+        ]
+      },
+      {
+        "send": { "text": "1000" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Overall monthly budget set to $1000.00." }
+          }
+        ]
+      }
+    ]
+  }
+]

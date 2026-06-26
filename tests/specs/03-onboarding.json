@@ -1,0 +1,29 @@
+[
+  {
+    "name": "complete onboarding by selecting USD currency",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "\ud83d\udc4b Welcome to Expense Tracker!\n\nFirst, select your currency:"
+            }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "onboard:currency:USD" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": {
+              "text": "Currency set to USD.\n\nDefault categories added: Food, Transport, Housing, Entertainment, Shopping, Utilities, Health, Other\n\n\ud83d\udc4b Welcome! Tap a button below to get started."
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

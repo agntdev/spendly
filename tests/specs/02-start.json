@@ -1,13 +1,13 @@
 [
   {
-    "name": "/start replies with the welcome + main menu",
+    "name": "/start shows onboarding for new users",
     "steps": [
       {
         "send": { "text": "/start" },
         "expect": [
           {
             "method": "sendMessage",
-            "payload": { "text": "👋 Welcome! Tap a button below to get started." }
+            "payload": { "text": "\ud83d\udc4b Welcome to Expense Tracker!\n\nFirst, select your currency:" }
           }
         ]
       }
