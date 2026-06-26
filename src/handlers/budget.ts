@@ -12,16 +12,12 @@ import {
   getCategoryById,
   getUser,
   ensureUser,
+  formatMoney,
 } from "../store.js";
 
 registerMainMenuItem({ label: "🎯 Budget", data: "budget:menu", order: 50 });
 
 const composer = new Composer<Ctx>();
-
-function formatMoney(cents: number, currency: string): string {
-  const sym = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : currency + " ";
-  return `${sym}${(cents / 100).toFixed(2)}`;
-}
 
 function centsFromText(text: string): number | null {
   const cleaned = text.replace(/[^-0-9.]/g, "");
@@ -139,7 +135,27 @@ composer.command("setbudget", async (ctx) => {
   const amountStr = parts[0];
   const cents = centsFromText(amountStr);
   if (cents === null) {
-    await ctx.reply("Please enter a valid non-negative amount, like:\n/setbudget 1000");
+    await ctx.reply("Please enter a valid non-negative amount, like:\n/setbudget 1000 or /setbudget 300 Food");
+    return;
+  }
+
+  const categoryName = parts.slice(1).join(" ").trim();
+
+  if (categoryName) {
+    const cats = await getCategories(userId);
+    const cat = cats.find((c) => c.name.toLowerCase() === categoryName.toLowerCase());
+    if (!cat) {
+      await ctx.reply(`Category "${categoryName}" not found. Create it first via the Categories menu.`);
+      return;
+    }
+
+    const budget = await getBudget(userId);
+    budget.per_category[cat.id] = cents;
+    await saveBudget(budget);
+
+    const user = await getUser(userId);
+    const sym = user?.currency ?? "USD";
+    await ctx.reply(`Budget for "${cat.name}" set to ${formatMoney(cents, sym)}.`);
     return;
   }
 

@@ -146,7 +146,7 @@ composer.on("message:text", async (ctx, next) => {
     }
 
     const cat = {
-      id: generateId(),
+      id: await generateId(),
       user_id: userId,
       name,
       created_at: new Date().toISOString(),

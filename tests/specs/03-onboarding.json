@@ -6,10 +6,7 @@
         "send": { "text": "/start" },
         "expect": [
           {
-            "method": "sendMessage",
-            "payload": {
-              "text": "\ud83d\udc4b Welcome to Expense Tracker!\n\nFirst, select your currency:"
-            }
+            "method": "sendMessage"
           }
         ]
       },

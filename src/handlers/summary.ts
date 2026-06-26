@@ -12,35 +12,49 @@ import {
   getNotificationRules,
   getUser,
   ensureUser,
+  formatMoney,
 } from "../store.js";
 
 registerMainMenuItem({ label: "📊 Summary", data: "summary:show", order: 40 });
 
 const composer = new Composer<Ctx>();
 
-function formatMoney(cents: number, currency: string): string {
-  const sym = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : currency + " ";
-  return `${sym}${(cents / 100).toFixed(2)}`;
+function getUserMonthBounds(timezone: string, monthOffset = 0): { start: string; end: string; name: string } {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+  });
+  const [year, month] = fmt.format(now).split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1 - monthOffset, 1));
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth();
+  const start = new Date(Date.UTC(y, m, 1)).toISOString();
+  const end = new Date(Date.UTC(y, m + 1, 1)).toISOString();
+  const name = new Date(Date.UTC(y, m, 1)).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return { start, end, name };
 }
 
 async function buildSummary(userId: number, monthOffset = 0): Promise<string> {
   const user = await getUser(userId);
   const sym = user?.currency ?? "USD";
+  const tz = user?.timezone ?? "UTC";
   const expenses = await getExpenses(userId);
   const budget = await getBudget(userId);
   const cats = await getCategories(userId);
   const rules = await getNotificationRules(userId);
 
-  const now = new Date();
-  const target = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
-  const monthStart = new Date(target.getFullYear(), target.getMonth(), 1).toISOString();
-  const monthEnd = new Date(target.getFullYear(), target.getMonth() + 1, 1).toISOString();
+  const { start: monthStart, end: monthEnd, name: monthName } = getUserMonthBounds(tz, monthOffset);
 
   const monthExpenses = expenses.filter(
     (e) => e.timestamp >= monthStart && e.timestamp < monthEnd,
   );
 
-  const monthName = target.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const total = monthExpenses.reduce((sum, e) => sum + e.amount_cents, 0);
 
   const lines: string[] = [

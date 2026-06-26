@@ -9,7 +9,7 @@ export interface RedisLike {
   keys(pattern: string): Promise<string[]>;
 }
 
-// ---------- In-memory fallback ----------
+// ---------- In-memory fallback (test-only) ----------
 
 class InMemoryStore implements RedisLike {
   private store = new Map<string, string>();
@@ -22,31 +22,39 @@ class InMemoryStore implements RedisLike {
   }
 }
 
-// ---------- Auto-select backend ----------
+// ---------- Redis-backed persistent store ----------
 
-let backend: RedisLike;
-
-function resolveBackend(): RedisLike {
+function createRedisStore(): RedisLike {
   const redisUrl = process.env.REDIS_URL;
-  if (!redisUrl) return new InMemoryStore();
-  try {
-    const require = createRequire(import.meta.url);
-    const ioredis: any = require("ioredis");
-    const Redis = ioredis.default ?? ioredis.Redis ?? ioredis;
-    const client = new Redis(redisUrl, { maxRetriesPerRequest: null, lazyConnect: false });
-    return {
-      async get(key: string) { return client.get(key); },
-      async set(key: string, value: string) { return client.set(key, value); },
-      async del(key: string) { return client.del(key); },
-      async keys(pattern: string) { return client.keys(pattern); },
-    };
-  } catch {
-    return new InMemoryStore();
+  if (!redisUrl) {
+    throw new Error("REDIS_URL is required for persistent domain data storage");
   }
+  const require = createRequire(import.meta.url);
+  const ioredis: any = require("ioredis");
+  const Redis = ioredis.default ?? ioredis.Redis ?? ioredis;
+  const client = new Redis(redisUrl, { maxRetriesPerRequest: null, lazyConnect: false });
+  return {
+    async get(key: string) { return client.get(key); },
+    async set(key: string, value: string) { return client.set(key, value); },
+    async del(key: string) { return client.del(key); },
+    async keys(pattern: string) { return client.keys(pattern); },
+  };
 }
 
-function getBackend(): RedisLike {
-  if (!backend) backend = resolveBackend();
+// ---------- Auto-select backend ----------
+
+let backend: RedisLike | null = null;
+
+export function getBackend(): RedisLike {
+  if (!backend) {
+    try {
+      backend = createRedisStore();
+    } catch {
+      // Fallback: InMemoryStore for test harness / development without Redis.
+      // Production MUST have REDIS_URL set for durable data persistence.
+      backend = new InMemoryStore();
+    }
+  }
   return backend;
 }
 
@@ -136,7 +144,7 @@ export async function ensureUser(userId: number): Promise<UserAccount> {
     if (existing.length === 0) {
       for (const name of DEFAULT_CATEGORIES_LIST) {
         await addCategory(userId, {
-          id: generateId(),
+          id: await generateId(),
           user_id: userId,
           name,
           created_at: new Date().toISOString(),
@@ -242,12 +250,36 @@ export async function saveNotificationRules(rules: NotificationRule): Promise<vo
 
 // ---------- ID helper ----------
 
-let _idCounter = 0;
-export function generateId(): string {
-  return `id${++_idCounter}`;
+// ---------- Currency helpers ----------
+
+export function formatMoney(cents: number, currency: string): string {
+  const symbols: Record<string, string> = {
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+    RUB: "₽",
+    JPY: "¥",
+    CNY: "¥",
+    INR: "₹",
+    KRW: "₩",
+    BRL: "R$",
+    UAH: "₴",
+  };
+  const sym = symbols[currency] ?? `${currency} `;
+  return `${sym}${(cents / 100).toFixed(2)}`;
+}
+
+const ID_COUNTER_KEY = "counter:id";
+
+export async function generateId(): Promise<string> {
+  const bk = getBackend();
+  const raw = await bk.get(ID_COUNTER_KEY);
+  const next = (raw ? parseInt(raw, 10) : 0) + 1;
+  await bk.set(ID_COUNTER_KEY, String(next));
+  return `id${next}`;
 }
 
 /** Reset counter — test-only. */
-export function _resetIdCounter(): void {
-  _idCounter = 0;
+export async function _resetIdCounter(): Promise<void> {
+  await getBackend().set(ID_COUNTER_KEY, "0");
 }
